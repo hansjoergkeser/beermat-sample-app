@@ -69,7 +69,6 @@ class MainActivity : AppCompatActivity() {
 
 	@Subscribe(threadMode = ThreadMode.MAIN)
 	fun handleRefresh(refreshEvent: BeermatRefreshEvent) {
-		// https://kotlinlang.org/docs/tutorials/android-plugin.html
 		val beerCount = refreshEvent.amountOfBeers
 		tv_beer_count.text = beerCount.toString()
 
