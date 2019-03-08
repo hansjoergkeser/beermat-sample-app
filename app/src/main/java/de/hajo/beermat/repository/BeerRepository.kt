@@ -7,6 +7,7 @@ import de.hajo.beermat.database.BeerDatabase
 import de.hajo.beermat.events.BeermatCreationEvent
 import de.hajo.beermat.events.BeermatGetEvent
 import de.hajo.beermat.events.BeermatInitialGetEvent
+import de.hajo.beermat.events.BeermatRefreshEvent
 import de.hajo.beermat.events.BeermatUpdateEvent
 import de.hajo.beermat.model.Beermat
 import org.greenrobot.eventbus.EventBus
@@ -47,6 +48,17 @@ class BeerRepository(val context: Context) {
             }
         }.execute()
     }
+
+	@SuppressLint("StaticFieldLeak")
+	fun refresh() {
+		object : AsyncTask<Void, Void, Void>() {
+			override fun doInBackground(vararg voids: Void): Void? {
+				val amountOfBeers = getBeerDatabase().beerDao().getAmount()
+				EventBus.getDefault().post(BeermatRefreshEvent(amountOfBeers))
+				return null
+			}
+		}.execute()
+	}
 
     @SuppressLint("StaticFieldLeak")
     fun getBeerAmount(increasedCount: Boolean) {
