@@ -5,10 +5,9 @@ import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.snackbar.Snackbar
 import de.hajo.beermat.events.BeermatCreationEvent
+import de.hajo.beermat.events.BeermatGetAmountEvent
 import de.hajo.beermat.events.BeermatGetEvent
-import de.hajo.beermat.events.BeermatInitialGetEvent
-import de.hajo.beermat.events.BeermatRefreshEvent
-import de.hajo.beermat.events.BeermatUpdateEvent
+import de.hajo.beermat.events.BeermatUpdateAmountEvent
 import de.hajo.beermat.repository.BeerRepository
 import kotlinx.android.synthetic.main.activity_main.fab
 import kotlinx.android.synthetic.main.activity_main.toolbar
@@ -32,7 +31,7 @@ class MainActivity : AppCompatActivity() {
 		if (BuildConfig.DEBUG)
 			Timber.plant(DebugTree())
 
-		BeerRepository(this).getInitialBeermatState()
+		refresh()
 
 		fab.setOnClickListener {
 			refresh()
@@ -56,7 +55,7 @@ class MainActivity : AppCompatActivity() {
 	}
 
 	private fun refresh() {
-		BeerRepository(this).refresh()
+		BeerRepository(this).getBeermatState()
 	}
 
 	fun increaseBeerCount(view: View) {
@@ -68,26 +67,15 @@ class MainActivity : AppCompatActivity() {
 	}
 
 	@Subscribe(threadMode = ThreadMode.MAIN)
-	fun handleRefresh(refreshEvent: BeermatRefreshEvent) {
-		val beerCount = refreshEvent.amountOfBeers
-		tv_beer_count.text = beerCount.toString()
-
-		val totalPrice = calculateAndDisplayTotalPrice(beerCount)
-
-		BeerRepository(this).updateBeerPriceAndTotalPrice(getItemPriceInt(), totalPrice)
-		Timber.d("handleRefresh() finished. Beermat table refreshed.")
-	}
-
-	@Subscribe(threadMode = ThreadMode.MAIN)
-	fun handleUpdatedBeerCount(updateEvent: BeermatUpdateEvent) {
-		val beerCount = updateEvent.amountOfBeers
+	fun handleUpdatedBeerCount(updateAmountEvent: BeermatUpdateAmountEvent) {
+		val beerCount = updateAmountEvent.amountOfBeers
 		tv_beer_count.text = beerCount.toString()
 
 		val totalPrice = calculateAndDisplayTotalPrice(beerCount)
 
 		BeerRepository(this).updateBeerPriceAndTotalPrice(getItemPriceInt(), totalPrice)
 
-		if (updateEvent.increasedCount) executeCheering(updateEvent.amountOfBeers) else executeBullying(updateEvent.amountOfBeers)
+		if (updateAmountEvent.increasedCount) executeCheering(updateAmountEvent.amountOfBeers) else executeBullying(updateAmountEvent.amountOfBeers)
 		Timber.d("handleUpdatedBeerCount() finished. Beermat table updated.")
 	}
 
@@ -105,11 +93,11 @@ class MainActivity : AppCompatActivity() {
 	}
 
 	@Subscribe(threadMode = ThreadMode.MAIN)
-	fun handleCurrentBeerCount(getEvent: BeermatGetEvent) {
-		var tmpCount = getEvent.amountOfBeers
-		if (getEvent.increasedCount) tmpCount++ else if (!getEvent.increasedCount && tmpCount == 0) tmpCount =
+	fun handleCurrentBeerCount(getAmountEvent: BeermatGetAmountEvent) {
+		var tmpCount = getAmountEvent.amountOfBeers
+		if (getAmountEvent.increasedCount) tmpCount++ else if (!getAmountEvent.increasedCount && tmpCount == 0) tmpCount =
 				0 else tmpCount--
-		BeerRepository(this).updateBeerCount(tmpCount, getEvent.increasedCount)
+		BeerRepository(this).updateBeerCount(tmpCount, getAmountEvent.increasedCount)
 		Timber.d("handleCurrentBeerCount() finished. Beermat get action finished.")
 	}
 
@@ -122,16 +110,16 @@ class MainActivity : AppCompatActivity() {
 	}
 
 	@Subscribe(threadMode = ThreadMode.MAIN)
-	fun handleBeermatInitialGetEvent(initialGetEvent: BeermatInitialGetEvent) {
-		if (initialGetEvent.amountOfBeers == 0) {
+	fun handleBeermatGetEvent(getEvent: BeermatGetEvent) {
+		if (getEvent.amountOfBeers == 0) {
 			BeerRepository(this).createDefaultBeermat()
 		} else {
-			tv_beer_count.text = initialGetEvent.amountOfBeers.toString()
-			et_price.setText(NumberFormat.getCurrencyInstance(Locale.GERMANY).format(initialGetEvent.price / 100))
+			tv_beer_count.text = getEvent.amountOfBeers.toString()
+			et_price.setText(NumberFormat.getCurrencyInstance(Locale.GERMANY).format(getEvent.price / 100.toDouble()))
 			tv_total_price_of_line.text =
-					NumberFormat.getCurrencyInstance(Locale.GERMANY).format(initialGetEvent.totalPrice / 100)
+					NumberFormat.getCurrencyInstance(Locale.GERMANY).format(getEvent.totalPrice / 100.toDouble())
 		}
-		Timber.d("handleBeermatInitialGetEvent() finished")
+		Timber.d("handleBeermatGetEvent() finished")
 	}
 
 	private fun executeCheering(beerCount: Int) {
