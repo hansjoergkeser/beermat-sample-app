@@ -2,6 +2,7 @@ package de.hajo.beermat
 
 import android.os.Bundle
 import android.view.View
+import android.view.inputmethod.EditorInfo
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.snackbar.Snackbar
 import de.hajo.beermat.events.BeermatCreationEvent
@@ -22,6 +23,7 @@ import timber.log.Timber.DebugTree
 import java.text.NumberFormat
 import java.util.Locale
 
+
 class MainActivity : AppCompatActivity() {
 
 	override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,9 +35,17 @@ class MainActivity : AppCompatActivity() {
 
 		refresh()
 
+		et_price.setOnEditorActionListener { _, actionId, _ ->
+			if (actionId == EditorInfo.IME_ACTION_DONE) {
+				updatePrice()
+			}
+			false
+		}
+
 		fab.setOnClickListener {
 			refresh()
 		}
+
 	}
 
 	override fun onStart() {
@@ -66,21 +76,27 @@ class MainActivity : AppCompatActivity() {
 		BeerRepository(this).getBeerAmount(false)
 	}
 
+	private fun updatePrice() {
+		val beerCount = tv_beer_count.text.toString().toInt()
+		val itemPriceInt = getItemPriceInt()
+		BeerRepository(this).updateBeerPriceAndTotalPrice(itemPriceInt, calculateAndDisplayTotalPrice(beerCount, itemPriceInt))
+	}
+
 	@Subscribe(threadMode = ThreadMode.MAIN)
 	fun handleUpdatedBeerCount(updateAmountEvent: BeermatUpdateAmountEvent) {
 		val beerCount = updateAmountEvent.amountOfBeers
 		tv_beer_count.text = beerCount.toString()
 
-		val totalPrice = calculateAndDisplayTotalPrice(beerCount)
+		val itemPriceInt = getItemPriceInt()
+		val totalPrice = calculateAndDisplayTotalPrice(beerCount, itemPriceInt)
 
-		BeerRepository(this).updateBeerPriceAndTotalPrice(getItemPriceInt(), totalPrice)
+		BeerRepository(this).updateBeerPriceAndTotalPrice(itemPriceInt, totalPrice)
 
 		if (updateAmountEvent.increasedCount) executeCheering(updateAmountEvent.amountOfBeers) else executeBullying(updateAmountEvent.amountOfBeers)
 		Timber.d("handleUpdatedBeerCount() finished. Beermat table updated.")
 	}
 
-	private fun calculateAndDisplayTotalPrice(beerCount: Int): Int {
-		val itemPriceInt = getItemPriceInt()
+	private fun calculateAndDisplayTotalPrice(beerCount: Int, itemPriceInt: Int): Int {
 		tv_total_price_of_line.text = NumberFormat.getCurrencyInstance(Locale.GERMANY)
 				.format(beerCount.toDouble() * itemPriceInt.toDouble() / 100)
 
@@ -105,7 +121,7 @@ class MainActivity : AppCompatActivity() {
 	fun handleBeermatCreation(creationEvent: BeermatCreationEvent) {
 		tv_beer_count.text = "1"
 		et_price.setText(R.string.default_price)
-		calculateAndDisplayTotalPrice(1)
+		calculateAndDisplayTotalPrice(1, 300)
 		Timber.d("handleBeermatCreation() finished. Default beermat table has been created.")
 	}
 
