@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- check out these fancy craft beer colours
+     https://www.colourlovers.com/blog/2007/07/23/color-inspiration-from-ales-lagers-stouts-beer
+     -->
     <color name="colorPrimary">#D86000</color>
     <color name="colorPrimaryDark">#A84800</color>
-    <color name="colorAccent">#FFFFFF</color>
+    <color name="colorAccent">#D86000</color>
 </resources>
